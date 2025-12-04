@@ -15,6 +15,12 @@
 #include <QCameraDevice>
 #include <QAudioDevice>
 #include <QScreen>
+#include <QMenu>
+#include <QVideoWidget>
+#include "pip_float_window.h"
+
+class QCloseEvent;
+class QResizeEvent;
 
 namespace Ui {
 class CameraMainWindow;
@@ -30,6 +36,7 @@ public:
 
 protected:
     void closeEvent(QCloseEvent *event) override;
+    void resizeEvent(QResizeEvent *event) override;
 
 private slots:
     void trayIconActivated(QSystemTrayIcon::ActivationReason reason);
@@ -47,28 +54,40 @@ private slots:
 private:
     void createTrayIcon();
     void refreshDevices();
+
     void setupAudioFromSelection();
     void setupCameraMode();
     void setupScreenMode();
+    void setupCamScreenMode();          // Cam + Screen (PiP)
+
+    void updatePipOverlayGeometry();    // Embedded PiP overlay
     QString buildOutputFileName(const QString &prefix, const QString &ext);
     void setUiRecordingState(bool recording);
+    void showFloatingPip();
 
 private:
-    Ui::CameraMainWindow *ui;
+    Ui::CameraMainWindow *ui = nullptr;
 
-    QMediaRecorder      *mediaRecorder      = nullptr;
-    QCamera             *camera             = nullptr;
-    QScreenCapture      *screenCapture      = nullptr;
-    QImageCapture       *imageCapture       = nullptr;
-    QAudioInput         *audioInput         = nullptr;
-    QMediaCaptureSession captureSession;
+    // Main recording session
+    QMediaRecorder       *mediaRecorder      = nullptr;
+    QCamera              *camera             = nullptr;
+    QScreenCapture       *screenCapture      = nullptr;
+    QImageCapture        *imageCapture       = nullptr;
+    QAudioInput          *audioInput         = nullptr;
+    QMediaCaptureSession  captureSession;
 
-    QTimer *recordTimer  = nullptr;
+    // Separate session for PiP camera preview
+    QMediaCaptureSession  pipSession;
+    QVideoWidget         *pipVideoWidget     = nullptr;   // embedded PiP
+    PipFloatWindow       *pipFloatWindow     = nullptr;   // floating PiP
+
+
+    QTimer *recordTimer    = nullptr;
     int     elapsedSeconds = 0;
     bool    isRecording    = false;
 
-    QSystemTrayIcon *trayIcon  = nullptr;
-    QMenu           *trayMenu  = nullptr;
+    QSystemTrayIcon *trayIcon    = nullptr;
+    QMenu           *trayMenu    = nullptr;
     QAction         *actionShow  = nullptr;
     QAction         *actionStart = nullptr;
     QAction         *actionStop  = nullptr;
@@ -77,6 +96,8 @@ private:
     QList<QCameraDevice> cameraDevices;
     QList<QAudioDevice>  audioDevices;
     QList<QScreen*>      screenList;
+
+
 };
 
 #endif // CAMERA_MAINWINDOW_H

@@ -11,14 +11,18 @@
 #include <QGuiApplication>
 #include <QScreen>
 #include <QDir>
-#include <QMenu>
-#include <QAction>
 #include <QStyle>
 #include <QApplication>
 #include <QCloseEvent>
 #include <QGraphicsOpacityEffect>
 #include <QPropertyAnimation>
 #include <QTimer>
+#include <QResizeEvent>
+#include <QRegion>
+#include <QComboBox>
+#include <QCheckBox>
+#include <QSlider>
+#include <QVideoWidget>
 
 // -------------------------------------------------------------
 // Constructor / Destructor
@@ -31,10 +35,11 @@ CameraMainWindow::CameraMainWindow(QWidget *parent)
 
     // ---------- UI SETUP ----------
 
-    // Mode selector
+    // Mode selector: 0 = Camera, 1 = Screen, 2 = Cam + Screen (PiP)
     ui->mode_comboBox->clear();
     ui->mode_comboBox->addItem("Camera", 0);
     ui->mode_comboBox->addItem("Screen", 1);
+    ui->mode_comboBox->addItem("Cam + Screen (PiP)", 2);
 
     // Video widget
     ui->video_widget->setAspectRatioMode(Qt::KeepAspectRatio);
@@ -72,8 +77,42 @@ CameraMainWindow::CameraMainWindow(QWidget *parent)
 
     ui->record_timer_label->hide();
 
-    // ---------- MEDIA SETUP ----------
+    // ---------- PiP controls ----------
+    if (ui->pip_position_comboBox) {
+        ui->pip_position_comboBox->clear();
+        ui->pip_position_comboBox->addItem("Bottom Right");
+        ui->pip_position_comboBox->addItem("Bottom Left");
+        ui->pip_position_comboBox->addItem("Top Right");
+        ui->pip_position_comboBox->addItem("Top Left");
+        ui->pip_position_comboBox->setCurrentIndex(0);
+    }
+    if (ui->pip_size_slider) {
+        ui->pip_size_slider->setMinimum(15);   // 15% of video size
+        ui->pip_size_slider->setMaximum(50);   // up to 50%
+        ui->pip_size_slider->setValue(25);     // default 25%
+    }
+    if (ui->pip_show_checkBox) {
+        ui->pip_show_checkBox->setChecked(true);
+    }
+    if (ui->pip_shape_comboBox) {
+        ui->pip_shape_comboBox->clear();
+        ui->pip_shape_comboBox->addItem("Square");
+        ui->pip_shape_comboBox->addItem("Circle");
+        ui->pip_shape_comboBox->setCurrentIndex(0);
+    }
+    if (ui->pip_floating_checkBox) {
+        ui->pip_floating_checkBox->setChecked(false); // default: embedded PiP
+    }
 
+    // Create PiP video widget inside pip_overlay_widget (embedded PiP)
+    pipVideoWidget = new QVideoWidget(ui->pip_overlay_widget);
+    pipVideoWidget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+    pipVideoWidget->setAspectRatioMode(Qt::KeepAspectRatio);
+    pipVideoWidget->setGeometry(ui->pip_overlay_widget->rect());
+    pipVideoWidget->show();
+    ui->pip_overlay_widget->hide(); // hidden unless CamScreen mode + enabled
+
+    // ---------- MEDIA SETUP ----------
     mediaRecorder = new QMediaRecorder(this);
     captureSession.setRecorder(mediaRecorder);
 
@@ -83,16 +122,20 @@ CameraMainWindow::CameraMainWindow(QWidget *parent)
 
     // ---------- CONNECTIONS ----------
 
-    connect(ui->mode_comboBox,   QOverload<int>::of(&QComboBox::currentIndexChanged),
+    connect(ui->mode_comboBox,
+            QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, &CameraMainWindow::onModeChanged);
 
-    connect(ui->camera_comboBox, QOverload<int>::of(&QComboBox::currentIndexChanged),
+    connect(ui->camera_comboBox,
+            QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, &CameraMainWindow::onCameraSelectionChanged);
 
-    connect(ui->mic_comboBox,    QOverload<int>::of(&QComboBox::currentIndexChanged),
+    connect(ui->mic_comboBox,
+            QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, &CameraMainWindow::onMicSelectionChanged);
 
-    connect(ui->screen_comboBox, QOverload<int>::of(&QComboBox::currentIndexChanged),
+    connect(ui->screen_comboBox,
+            QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, &CameraMainWindow::onScreenSelectionChanged);
 
     connect(ui->capture_photo_pushButton, &QPushButton::clicked,
@@ -106,6 +149,45 @@ CameraMainWindow::CameraMainWindow(QWidget *parent)
 
     connect(ui->record_audio_checkBox, &QCheckBox::toggled,
             this, [this](bool){ setupAudioFromSelection(); });
+
+    // PiP controls -> embedded overlay
+    connect(ui->pip_show_checkBox, &QCheckBox::toggled,
+            this, [this](bool){ updatePipOverlayGeometry(); });
+
+    connect(ui->pip_size_slider, &QSlider::valueChanged,
+            this, [this](int){ updatePipOverlayGeometry(); });
+
+    connect(ui->pip_position_comboBox,
+            QOverload<int>::of(&QComboBox::currentIndexChanged),
+            this, [this](int){ updatePipOverlayGeometry(); });
+
+    connect(ui->pip_shape_comboBox,
+            QOverload<int>::of(&QComboBox::currentIndexChanged),
+            this, [this](int){ updatePipOverlayGeometry(); });
+
+    connect(ui->pip_floating_checkBox, &QCheckBox::toggled,
+            this, [this](bool enabled){
+                int mode = ui->mode_comboBox->currentData().toInt();
+                bool pipChecked = ui->pip_show_checkBox->isChecked();
+
+                // Floating PiP only works in CamScreen mode and PiP enabled
+                if (!(mode == 2 && pipChecked)) {
+                    if (pipFloatWindow) pipFloatWindow->hide();
+                    ui->pip_overlay_widget->show();
+                    return;
+                }
+
+                if (enabled) {
+                    // Switch to floating PiP
+                    ui->pip_overlay_widget->hide();
+                    showFloatingPip();
+                } else {
+                    // Switch back to embedded PiP
+                    if (pipFloatWindow) pipFloatWindow->hide();
+                    pipSession.setVideoOutput(pipVideoWidget);
+                    updatePipOverlayGeometry();
+                }
+            });
 
     // Tray + devices + initial mode
     createTrayIcon();
@@ -123,7 +205,21 @@ CameraMainWindow::CameraMainWindow(QWidget *parent)
 
 CameraMainWindow::~CameraMainWindow()
 {
+    if (pipFloatWindow) {
+        pipFloatWindow->close();
+        delete pipFloatWindow;
+        pipFloatWindow = nullptr;
+    }
     delete ui;
+}
+
+// -------------------------------------------------------------
+// Resize: keep PiP in corner
+// -------------------------------------------------------------
+void CameraMainWindow::resizeEvent(QResizeEvent *event)
+{
+    QMainWindow::resizeEvent(event);
+    updatePipOverlayGeometry();
 }
 
 // -------------------------------------------------------------
@@ -242,17 +338,22 @@ void CameraMainWindow::onModeChanged(int idx)
     if (isRecording)
         return; // don’t change mode while recording
 
-    int mode = ui->mode_comboBox->itemData(idx).toInt(); // 0 = camera, 1 = screen
-    if (mode == 0)
-        setupCameraMode();
-    else
-        setupScreenMode();
+    int mode = ui->mode_comboBox->itemData(idx).toInt(); // 0 = camera, 1 = screen, 2 = CamScreen
+    switch (mode) {
+    case 0: setupCameraMode();    break;
+    case 1: setupScreenMode();    break;
+    case 2: setupCamScreenMode(); break;
+    default: setupCameraMode();   break;
+    }
 }
 
 void CameraMainWindow::onCameraSelectionChanged(int)
 {
-    if (!isRecording && ui->mode_comboBox->currentData().toInt() == 0)
-        setupCameraMode();
+    if (isRecording) return;
+
+    int mode = ui->mode_comboBox->currentData().toInt();
+    if      (mode == 0) setupCameraMode();
+    else if (mode == 2) setupCamScreenMode();
 }
 
 void CameraMainWindow::onMicSelectionChanged(int)
@@ -263,8 +364,11 @@ void CameraMainWindow::onMicSelectionChanged(int)
 
 void CameraMainWindow::onScreenSelectionChanged(int)
 {
-    if (!isRecording && ui->mode_comboBox->currentData().toInt() == 1)
-        setupScreenMode();
+    if (isRecording) return;
+
+    int mode = ui->mode_comboBox->currentData().toInt();
+    if      (mode == 1) setupScreenMode();
+    else if (mode == 2) setupCamScreenMode();
 }
 
 // -------------------------------------------------------------
@@ -297,6 +401,19 @@ void CameraMainWindow::setupAudioFromSelection()
 // -------------------------------------------------------------
 void CameraMainWindow::setupCameraMode()
 {
+    // Stop PiP floating window if any
+    if (pipFloatWindow) {
+        pipFloatWindow->close();
+        delete pipFloatWindow;
+        pipFloatWindow = nullptr;
+    }
+
+    // Stop PiP session
+    pipSession.setCamera(nullptr);
+    pipSession.setVideoOutput(nullptr);
+    if (pipVideoWidget)
+        ui->pip_overlay_widget->hide();
+
     // remove screen capture if any
     if (screenCapture) {
         screenCapture->stop();
@@ -337,6 +454,19 @@ void CameraMainWindow::setupCameraMode()
 
 void CameraMainWindow::setupScreenMode()
 {
+    // Stop PiP floating window
+    if (pipFloatWindow) {
+        pipFloatWindow->close();
+        delete pipFloatWindow;
+        pipFloatWindow = nullptr;
+    }
+
+    // Stop PiP session
+    pipSession.setCamera(nullptr);
+    pipSession.setVideoOutput(nullptr);
+    if (pipVideoWidget)
+        ui->pip_overlay_widget->hide();
+
     if (camera) {
         camera->stop();
         captureSession.setCamera(nullptr);
@@ -371,6 +501,194 @@ void CameraMainWindow::setupScreenMode()
 
     screenCapture->start();
     ui->capture_photo_pushButton->setEnabled(false); // can't take still photo from screen
+}
+
+// -------------------------------------------------------------
+// CamScreen mode: Screen recording + camera PiP (preview only)
+// -------------------------------------------------------------
+void CameraMainWindow::setupCamScreenMode()
+{
+    // Stop PiP floating if any
+    if (pipFloatWindow) {
+        pipFloatWindow->close();
+        delete pipFloatWindow;
+        pipFloatWindow = nullptr;
+    }
+
+    // Clear previous main session
+    if (camera) {
+        camera->stop();
+        captureSession.setCamera(nullptr);
+        delete camera;
+        camera = nullptr;
+    }
+    if (imageCapture) {
+        captureSession.setImageCapture(nullptr);
+        delete imageCapture;
+        imageCapture = nullptr;
+    }
+    if (screenCapture) {
+        screenCapture->stop();
+        captureSession.setScreenCapture(nullptr);
+        delete screenCapture;
+        screenCapture = nullptr;
+    }
+
+    // Main video = Screen
+    int screenIdx = ui->screen_comboBox->currentIndex();
+    if (screenIdx < 0 || screenIdx >= screenList.size()) {
+        ui->capture_photo_pushButton->setEnabled(false);
+        return;
+    }
+
+    screenCapture = new QScreenCapture(this);
+    screenCapture->setScreen(screenList.at(screenIdx));
+
+    captureSession.setScreenCapture(screenCapture);
+    captureSession.setVideoOutput(ui->video_widget);
+    setupAudioFromSelection();
+    screenCapture->start();
+
+    ui->capture_photo_pushButton->setEnabled(false); // still photo only in Camera mode
+
+    // Separate camera session → PiP overlay (preview)
+    int camIdx = ui->camera_comboBox->currentIndex();
+    if (camIdx < 0 || camIdx >= cameraDevices.size()) {
+        ui->pip_overlay_widget->hide();
+        pipSession.setCamera(nullptr);
+        pipSession.setVideoOutput(nullptr);
+        return;
+    }
+
+    if (camera) {
+        camera->stop();
+        delete camera;
+        camera = nullptr;
+    }
+    camera = new QCamera(cameraDevices.at(camIdx), this);
+
+    pipSession.setCamera(camera);
+
+    // embedded vs floating decided by checkbox
+    if (ui->pip_floating_checkBox && ui->pip_floating_checkBox->isChecked()) {
+        ui->pip_overlay_widget->hide();
+        showFloatingPip();
+    } else {
+        pipSession.setVideoOutput(pipVideoWidget);
+        updatePipOverlayGeometry();
+    }
+
+    camera->start();
+}
+
+// -------------------------------------------------------------
+// PiP overlay geometry (embedded preview)
+// -------------------------------------------------------------
+void CameraMainWindow::updatePipOverlayGeometry()
+{
+    if (!ui->pip_overlay_widget || !pipVideoWidget)
+        return;
+
+    int mode = ui->mode_comboBox->currentData().toInt();
+
+    bool pipChecked     = ui->pip_show_checkBox && ui->pip_show_checkBox->isChecked();
+    bool floatingChecked = ui->pip_floating_checkBox && ui->pip_floating_checkBox->isChecked();
+
+    // Embedded overlay is only visible in CamScreen mode, PiP ON, and floating OFF
+    bool showEmbedded = (mode == 2) && pipChecked && !floatingChecked;
+
+    if (!showEmbedded) {
+        ui->pip_overlay_widget->hide();
+        ui->pip_overlay_widget->clearMask();
+        return;
+    }
+
+    // Place overlay inside video_widget area
+    QRect area = ui->video_widget->geometry();
+    if (area.width() <= 0 || area.height() <= 0) {
+        ui->pip_overlay_widget->hide();
+        return;
+    }
+
+    int percent = ui->pip_size_slider ? ui->pip_size_slider->value() : 25;
+    if (percent < 10) percent = 10;
+    if (percent > 80) percent = 80;
+
+    int w = area.width() * percent / 100;
+    int h = area.height() * percent / 100;
+
+    // Keep 16:9 for camera overlay
+    if (w * 9 > h * 16)
+        h = w * 9 / 16;
+    else
+        w = h * 16 / 9;
+
+    int posIdx = ui->pip_position_comboBox ? ui->pip_position_comboBox->currentIndex() : 0;
+
+    int x = 0, y = 0;
+    const int margin = 10;
+
+    switch (posIdx) {
+    case 0: // Bottom Right
+        x = area.right() - w - margin;
+        y = area.bottom() - h - margin;
+        break;
+    case 1: // Bottom Left
+        x = area.left() + margin;
+        y = area.bottom() - h - margin;
+        break;
+    case 2: // Top Right
+        x = area.right() - w - margin;
+        y = area.top() + margin;
+        break;
+    case 3: // Top Left
+        x = area.left() + margin;
+        y = area.top() + margin;
+        break;
+    default:
+        x = area.right() - w - margin;
+        y = area.bottom() - h - margin;
+        break;
+    }
+
+    QRect pipRect(x, y, w, h);
+    ui->pip_overlay_widget->setGeometry(pipRect);
+    ui->pip_overlay_widget->raise();
+    ui->pip_overlay_widget->show();
+
+    // make inner video fill the container
+    pipVideoWidget->setGeometry(ui->pip_overlay_widget->rect());
+
+    // Shape for embedded PiP
+    bool circle = ui->pip_shape_comboBox &&
+                  ui->pip_shape_comboBox->currentText().contains("circle", Qt::CaseInsensitive);
+
+    if (circle) {
+        ui->pip_overlay_widget->setMask(QRegion(ui->pip_overlay_widget->rect(), QRegion::Ellipse));
+    } else {
+        ui->pip_overlay_widget->clearMask();
+    }
+}
+
+// -------------------------------------------------------------
+// Helper: output filename
+// -------------------------------------------------------------
+QString CameraMainWindow::buildOutputFileName(const QString &prefix, const QString &ext)
+{
+    QString base = QStandardPaths::writableLocation(QStandardPaths::MoviesLocation);
+    if (base.isEmpty())
+        base = QDir::homePath();
+
+    QDir dir(base);
+    if (!dir.exists("Captures"))
+        dir.mkpath("Captures");
+
+    return dir.filePath(
+        QString("%1_%2.%3")
+            .arg(prefix,
+                 QDateTime::currentDateTime().toString("yyyyMMdd_hhmmss"),
+                 ext)
+        );
 }
 
 // -------------------------------------------------------------
@@ -431,20 +749,23 @@ void CameraMainWindow::startRecording()
     mediaRecorder->setVideoBitRate(bitrate);
     mediaRecorder->setVideoFrameRate(fps);
 
-    QString base = QStandardPaths::writableLocation(QStandardPaths::MoviesLocation);
-    if (base.isEmpty())
-        base = QDir::homePath();
-
-    QDir dir(base);
-    if (!dir.exists("Captures"))
-        dir.mkpath("Captures");
-
     QString prefix = captureSession.camera() ? "camera" : "screen";
-    QString file = dir.filePath(prefix + "_" +
-                                QDateTime::currentDateTime().toString("yyyyMMdd_hhmmss") +
-                                ".mp4");
-
+    QString file = buildOutputFileName(prefix, "mp4");
     mediaRecorder->setOutputLocation(QUrl::fromLocalFile(file));
+
+    int mode = ui->mode_comboBox->currentData().toInt();
+    bool camScreenMode = (mode == 2);
+
+    bool pipChecked     = ui->pip_show_checkBox && ui->pip_show_checkBox->isChecked();
+    bool floatingChecked = ui->pip_floating_checkBox && ui->pip_floating_checkBox->isChecked();
+
+    if (camScreenMode && pipChecked && floatingChecked) {
+        ui->pip_overlay_widget->hide();
+        showFloatingPip();   // reuse same logic as preview
+    } else if (camScreenMode && pipChecked) {
+        pipSession.setVideoOutput(pipVideoWidget);
+        updatePipOverlayGeometry();
+    }
 
     if (!ui->show_live_preview_checkBox->isChecked())
         captureSession.setVideoOutput(nullptr);
@@ -467,6 +788,16 @@ void CameraMainWindow::stopRecording()
     mediaRecorder->stop();
     recordTimer->stop();
     ui->record_timer_label->hide();
+
+    // Close floating PiP and restore embedded mode
+    if (pipFloatWindow) {
+        pipSession.setVideoOutput(pipVideoWidget);
+        updatePipOverlayGeometry();
+
+        pipFloatWindow->close();
+        delete pipFloatWindow;
+        pipFloatWindow = nullptr;
+    }
 
     if (!ui->show_live_preview_checkBox->isChecked())
         captureSession.setVideoOutput(ui->video_widget);
@@ -517,3 +848,35 @@ void CameraMainWindow::setUiRecordingState(bool recording)
         actionStop->setEnabled(recording);
     }
 }
+
+// -------------------------------------------------------------
+// Floating PiP window creation / update
+// -------------------------------------------------------------
+void CameraMainWindow::showFloatingPip()
+{
+    if (!pipFloatWindow) {
+        pipFloatWindow = new PipFloatWindow();
+
+        // Size based on slider
+        int percent = ui->pip_size_slider ? ui->pip_size_slider->value() : 25;
+        if (percent < 10) percent = 10;
+        if (percent > 40) percent = 40;
+
+        QScreen *screen = QGuiApplication::primaryScreen();
+        QRect s = screen->geometry();
+        int w = s.width() * percent / 100;
+        int h = w * 9 / 16;
+        pipFloatWindow->resize(w, h);
+
+        // shape
+        bool circle = ui->pip_shape_comboBox &&
+                      ui->pip_shape_comboBox->currentText().contains("circle", Qt::CaseInsensitive);
+        pipFloatWindow->setCircleShape(circle);
+    }
+
+    // Send camera preview to floating window
+    pipSession.setVideoOutput(pipFloatWindow->videoWidget());
+    pipFloatWindow->show();
+    pipFloatWindow->raise();
+}
+

@@ -10,13 +10,16 @@ CONFIG += c++17
 
 SOURCES += \
     main.cpp \
-    camera_mainwindow.cpp
+    camera_mainwindow.cpp \
+    pip_float_window.cpp
 
 HEADERS += \
-    camera_mainwindow.h
+    camera_mainwindow.h \
+    pip_float_window.h
 
 FORMS += \
-    camera_mainwindow.ui
+    camera_mainwindow.ui \
+    pip_float_window.ui
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin
