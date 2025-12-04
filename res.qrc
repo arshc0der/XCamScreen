@@ -17,5 +17,11 @@
         <file>res/icons/screen1.png</file>
         <file>res/icons/camscreen.png</file>
         <file>res/logo.png</file>
+        <file>res/icons/bottom_left.png</file>
+        <file>res/icons/bottom_right.png</file>
+        <file>res/icons/circle.png</file>
+        <file>res/icons/square.png</file>
+        <file>res/icons/top_left.png</file>
+        <file>res/icons/top_right.png</file>
     </qresource>
 </RCC>

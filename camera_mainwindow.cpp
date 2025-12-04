@@ -80,10 +80,10 @@ CameraMainWindow::CameraMainWindow(QWidget *parent)
     // ---------- PiP controls ----------
     if (ui->pip_position_comboBox) {
         ui->pip_position_comboBox->clear();
-        ui->pip_position_comboBox->addItem("Bottom Right");
-        ui->pip_position_comboBox->addItem("Bottom Left");
-        ui->pip_position_comboBox->addItem("Top Right");
-        ui->pip_position_comboBox->addItem("Top Left");
+        ui->pip_position_comboBox->addItem(QIcon(":/res/icons/bottom_right.png"),"Bottom Right");
+        ui->pip_position_comboBox->addItem(QIcon(":/res/icons/bottom_left.png"),"Bottom Left");
+        ui->pip_position_comboBox->addItem(QIcon(":/res/icons/top_right.png"),"Top Right");
+        ui->pip_position_comboBox->addItem(QIcon(":/res/icons/top_left.png"),"Top Left");
         ui->pip_position_comboBox->setCurrentIndex(0);
     }
     if (ui->pip_size_slider) {
@@ -96,8 +96,8 @@ CameraMainWindow::CameraMainWindow(QWidget *parent)
     }
     if (ui->pip_shape_comboBox) {
         ui->pip_shape_comboBox->clear();
-        ui->pip_shape_comboBox->addItem("Square");
-        ui->pip_shape_comboBox->addItem("Circle");
+        ui->pip_shape_comboBox->addItem(QIcon(":/res/icons/square.png"),"Square");
+        ui->pip_shape_comboBox->addItem(QIcon(":/res/icons/circle.png"),"Circle");
         ui->pip_shape_comboBox->setCurrentIndex(0);
     }
     if (ui->pip_floating_checkBox) {
