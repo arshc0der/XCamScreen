@@ -11,7 +11,12 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>CameraMainWindow</string>
+   <string>XCamScreen</string>
+  </property>
+  <property name="windowIcon">
+   <iconset>
+    <normalon>:/res/logo.png</normalon>
+   </iconset>
   </property>
   <property name="styleSheet">
    <string notr="true">QMainWindow{

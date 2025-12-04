@@ -39,7 +39,7 @@ CameraMainWindow::CameraMainWindow(QWidget *parent)
     ui->mode_comboBox->clear();
     ui->mode_comboBox->addItem(QIcon(":/res/icons/camera.png"),"Camera", 0);
     ui->mode_comboBox->addItem(QIcon(":/res/icons/screen.png"),"Screen", 1);
-    ui->mode_comboBox->addItem("Cam + Screen (PiP)", 2);
+    ui->mode_comboBox->addItem(QIcon(":/res/icons/camscreen.png"),"Cam + Screen (PiP)", 2);
 
     // Video widget
     ui->video_widget->setAspectRatioMode(Qt::KeepAspectRatio);
@@ -199,7 +199,7 @@ CameraMainWindow::CameraMainWindow(QWidget *parent)
         onModeChanged(0);
     });
 
-    setWindowTitle("Pro Capture (Camera / Screen Recorder)");
+    setWindowTitle("XCamScreen (Camera / Screen Recorder)");
     resize(1100, 700);
 }
 

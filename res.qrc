@@ -15,5 +15,7 @@
         <file>res/icons/mic.png</file>
         <file>res/icons/preview.png</file>
         <file>res/icons/screen1.png</file>
+        <file>res/icons/camscreen.png</file>
+        <file>res/logo.png</file>
     </qresource>
 </RCC>
