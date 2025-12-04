@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>camera_MainWindow</class>
- <widget class="QMainWindow" name="camera_MainWindow">
+ <class>CameraMainWindow</class>
+ <widget class="QMainWindow" name="CameraMainWindow">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>camera_MainWindow</string>
+   <string>CameraMainWindow</string>
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QHBoxLayout" name="horizontalLayout">
@@ -72,7 +72,7 @@
           </widget>
          </item>
          <item row="1" column="1">
-          <widget class="QLabel" name="label_8">
+          <widget class="QLabel" name="record_timer_label">
            <property name="sizePolicy">
             <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
              <horstretch>0</horstretch>
@@ -88,7 +88,7 @@
        </widget>
       </item>
       <item>
-       <widget class="QWidget" name="video_widget" native="true"/>
+       <widget class="QVideoWidget" name="video_widget" native="true"/>
       </item>
       <item>
        <widget class="QFrame" name="gridFrame">
@@ -268,6 +268,14 @@
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>QVideoWidget</class>
+   <extends>QWidget</extends>
+   <header location="global">QVideoWidget</header>
+   <container>1</container>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>
