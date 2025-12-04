@@ -1,0 +1,11 @@
+<RCC>
+    <qresource prefix="/">
+        <file>res/icons/camera.png</file>
+        <file>res/icons/screen.png</file>
+        <file>res/icons/down_arrow.png</file>
+        <file>res/icons/checkbox_checked.png</file>
+        <file>res/icons/checkbox_unchecked.png</file>
+        <file>res/icons/start.png</file>
+        <file>res/icons/stop.png</file>
+    </qresource>
+</RCC>

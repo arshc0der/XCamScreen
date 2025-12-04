@@ -13,6 +13,85 @@
   <property name="windowTitle">
    <string>CameraMainWindow</string>
   </property>
+  <property name="styleSheet">
+   <string notr="true">QMainWindow{
+background-color: rgb(18, 28, 38);
+color: rgb(255, 255, 255);
+}
+/* ---- QPushButton ---- */
+QPushButton {
+    background-color: #2A2D33;
+    border: 1px solid #3A3F45;
+    border-radius: 6px;
+    color: #E6E6E6;
+    padding: 6px 12px;
+}
+QPushButton:hover {
+    background-color: #353A40;
+    border: 1px solid #4A90E2;
+}
+QPushButton:pressed {
+    background-color: #1F2226;
+}
+QPushButton:disabled {
+    background-color: #202225;
+    color: #6F7074;
+    border: 1px solid #2A2C2F;
+}
+
+/* ---- QComboBox ---- */
+QComboBox {
+    background-color: #2A2D33;
+    border: 1px solid #3A3F45;
+    border-radius: 6px;
+    padding: 4px 28px 4px 8px;
+    color: #E6E6E6;
+}
+QComboBox:hover {
+    border: 1px solid #4A90E2;
+}
+QComboBox QAbstractItemView {
+    background-color: #232529;
+    border: 1px solid #3A3F45;
+    color: #E6E6E6;
+    selection-background-color: #3A3F45;
+    selection-color: #FFFFFF;
+}
+QComboBox::drop-down {
+    width: 24px;
+    border-left: 0;
+}
+QComboBox::down-arrow {
+    image: url(:/res/icons/down_arrow.png);
+    width: 20px;
+    height: 20px;
+}
+
+/* ---- QCheckBox ---- */
+
+QCheckBox {
+    color: #E6E6E6;
+    spacing: 6px;
+}
+
+/* Unchecked image */
+QCheckBox::indicator {
+    width: 20px;
+    height: 20px;
+    image: url(:/res/icons/checkbox_unchecked.png);
+}
+
+/* Checked image */
+QCheckBox::indicator:checked {
+    image: url(:/res/icons/checkbox_checked.png);
+}
+
+/* Hover effect (optional) */
+QCheckBox::indicator:hover {
+    opacity: 0.85;
+}
+</string>
+  </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QHBoxLayout" name="horizontalLayout">
     <item>
@@ -43,14 +122,25 @@
                 <verstretch>0</verstretch>
                </sizepolicy>
               </property>
+              <property name="styleSheet">
+               <string notr="true">background-color: rgb(32, 43, 53);</string>
+              </property>
               <item>
                <property name="text">
                 <string>Camera</string>
+               </property>
+               <property name="icon">
+                <iconset resource="res.qrc">
+                 <normaloff>:/res/icons/camera.png</normaloff>:/res/icons/camera.png</iconset>
                </property>
               </item>
               <item>
                <property name="text">
                 <string>Screen</string>
+               </property>
+               <property name="icon">
+                <iconset resource="res.qrc">
+                 <normaloff>:/res/icons/screen.png</normaloff>:/res/icons/screen.png</iconset>
                </property>
               </item>
               <item>
@@ -83,6 +173,15 @@
              <horstretch>0</horstretch>
              <verstretch>0</verstretch>
             </sizepolicy>
+           </property>
+           <property name="font">
+            <font>
+             <pointsize>14</pointsize>
+             <bold>true</bold>
+            </font>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">color: rgb(255, 0, 0);</string>
            </property>
            <property name="text">
             <string>Record Time :</string>
@@ -209,7 +308,11 @@
           </widget>
          </item>
          <item row="2" column="1">
-          <widget class="QComboBox" name="resolution_comboBox"/>
+          <widget class="QComboBox" name="resolution_comboBox">
+           <property name="styleSheet">
+            <string notr="true"/>
+           </property>
+          </widget>
          </item>
         </layout>
        </widget>
@@ -221,6 +324,9 @@
           <horstretch>0</horstretch>
           <verstretch>0</verstretch>
          </sizepolicy>
+        </property>
+        <property name="styleSheet">
+         <string notr="true"/>
         </property>
         <layout class="QGridLayout" name="gridLayout_3">
          <item row="1" column="1">
@@ -240,6 +346,17 @@
           <widget class="QPushButton" name="capture_photo_pushButton">
            <property name="text">
             <string>Capture Photo</string>
+           </property>
+           <property name="icon">
+            <iconset>
+             <normalon>:/res/icons/camera.png</normalon>
+            </iconset>
+           </property>
+           <property name="iconSize">
+            <size>
+             <width>20</width>
+             <height>20</height>
+            </size>
            </property>
           </widget>
          </item>
@@ -262,6 +379,17 @@
            <property name="text">
             <string>Stop Recording</string>
            </property>
+           <property name="icon">
+            <iconset>
+             <normalon>:/res/icons/stop.png</normalon>
+            </iconset>
+           </property>
+           <property name="iconSize">
+            <size>
+             <width>20</width>
+             <height>20</height>
+            </size>
+           </property>
           </widget>
          </item>
          <item row="1" column="0">
@@ -282,6 +410,17 @@
           <widget class="QPushButton" name="start_record_pushButton">
            <property name="text">
             <string>Start Recording</string>
+           </property>
+           <property name="icon">
+            <iconset>
+             <normalon>:/res/icons/start.png</normalon>
+            </iconset>
+           </property>
+           <property name="iconSize">
+            <size>
+             <width>20</width>
+             <height>20</height>
+            </size>
            </property>
           </widget>
          </item>
@@ -346,6 +485,8 @@
    <container>1</container>
   </customwidget>
  </customwidgets>
- <resources/>
+ <resources>
+  <include location="res.qrc"/>
+ </resources>
  <connections/>
 </ui>

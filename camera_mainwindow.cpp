@@ -841,7 +841,7 @@ void CameraMainWindow::setUiRecordingState(bool recording)
     ui->mic_comboBox->setEnabled(!recording);
     ui->screen_comboBox->setEnabled(!recording);
 
-    ui->start_record_pushButton->setText(recording ? "⏺ Recording..." : "⏺ Start Recording");
+    ui->start_record_pushButton->setText(recording ? "Recording..." : "Start Recording");
 
     if (actionStart && actionStop) {
         actionStart->setEnabled(!recording);
