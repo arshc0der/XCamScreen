@@ -37,8 +37,8 @@ CameraMainWindow::CameraMainWindow(QWidget *parent)
 
     // Mode selector: 0 = Camera, 1 = Screen, 2 = Cam + Screen (PiP)
     ui->mode_comboBox->clear();
-    ui->mode_comboBox->addItem("Camera", 0);
-    ui->mode_comboBox->addItem("Screen", 1);
+    ui->mode_comboBox->addItem(QIcon(":/res/icons/camera.png"),"Camera", 0);
+    ui->mode_comboBox->addItem(QIcon(":/res/icons/screen.png"),"Screen", 1);
     ui->mode_comboBox->addItem("Cam + Screen (PiP)", 2);
 
     // Video widget

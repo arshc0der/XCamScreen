@@ -7,5 +7,13 @@
         <file>res/icons/checkbox_unchecked.png</file>
         <file>res/icons/start.png</file>
         <file>res/icons/stop.png</file>
+        <file>res/icons/bitrate.png</file>
+        <file>res/icons/camera1.png</file>
+        <file>res/icons/floating_window.png</file>
+        <file>res/icons/fps.png</file>
+        <file>res/icons/hardware.png</file>
+        <file>res/icons/mic.png</file>
+        <file>res/icons/preview.png</file>
+        <file>res/icons/screen1.png</file>
     </qresource>
 </RCC>
