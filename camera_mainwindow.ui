@@ -110,7 +110,29 @@ QCheckBox::indicator:hover {
          </sizepolicy>
         </property>
         <layout class="QGridLayout" name="gridLayout_5">
-         <item row="1" column="0">
+         <item row="1" column="2">
+          <widget class="QLabel" name="record_timer_label">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="font">
+            <font>
+             <pointsize>14</pointsize>
+             <bold>true</bold>
+            </font>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">color: rgb(255, 0, 0);</string>
+           </property>
+           <property name="text">
+            <string>Record Time :</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1">
           <widget class="QFrame" name="gridFrame_3">
            <property name="sizePolicy">
             <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
@@ -171,25 +193,16 @@ QCheckBox::indicator:hover {
            </layout>
           </widget>
          </item>
-         <item row="1" column="1">
-          <widget class="QLabel" name="record_timer_label">
-           <property name="sizePolicy">
-            <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-             <horstretch>0</horstretch>
-             <verstretch>0</verstretch>
-            </sizepolicy>
-           </property>
+         <item row="1" column="0">
+          <widget class="QLabel" name="software_name_label">
            <property name="font">
             <font>
-             <pointsize>14</pointsize>
+             <pointsize>12</pointsize>
              <bold>true</bold>
             </font>
            </property>
-           <property name="styleSheet">
-            <string notr="true">color: rgb(255, 0, 0);</string>
-           </property>
            <property name="text">
-            <string>Record Time :</string>
+            <string>XCamScreen</string>
            </property>
           </widget>
          </item>
@@ -463,56 +476,7 @@ QCheckBox::indicator:hover {
          <string notr="true"/>
         </property>
         <layout class="QGridLayout" name="gridLayout_3">
-         <item row="1" column="1">
-          <widget class="QSlider" name="pip_size_slider">
-           <property name="sizePolicy">
-            <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-             <horstretch>0</horstretch>
-             <verstretch>0</verstretch>
-            </sizepolicy>
-           </property>
-           <property name="orientation">
-            <enum>Qt::Orientation::Horizontal</enum>
-           </property>
-          </widget>
-         </item>
-         <item row="3" column="0">
-          <widget class="QPushButton" name="capture_photo_pushButton">
-           <property name="text">
-            <string>Capture Photo</string>
-           </property>
-           <property name="icon">
-            <iconset>
-             <normalon>:/res/icons/camera.png</normalon>
-            </iconset>
-           </property>
-           <property name="iconSize">
-            <size>
-             <width>20</width>
-             <height>20</height>
-            </size>
-           </property>
-          </widget>
-         </item>
-         <item row="0" column="0">
-          <widget class="QCheckBox" name="record_audio_checkBox">
-           <property name="text">
-            <string>Record Audio</string>
-           </property>
-           <property name="icon">
-            <iconset>
-             <normalon>:/res/icons/mic.png</normalon>
-            </iconset>
-           </property>
-           <property name="iconSize">
-            <size>
-             <width>20</width>
-             <height>20</height>
-            </size>
-           </property>
-          </widget>
-         </item>
-         <item row="0" column="1">
+         <item row="0" column="2">
           <widget class="QCheckBox" name="hardware_acceleration_checkBox">
            <property name="text">
             <string>Hardware Accration</string>
@@ -530,7 +494,7 @@ QCheckBox::indicator:hover {
            </property>
           </widget>
          </item>
-         <item row="3" column="2">
+         <item row="5" column="3">
           <widget class="QPushButton" name="stop_record_pushButton">
            <property name="text">
             <string>Stop Recording</string>
@@ -548,43 +512,7 @@ QCheckBox::indicator:hover {
            </property>
           </widget>
          </item>
-         <item row="1" column="0">
-          <widget class="QCheckBox" name="pip_show_checkBox">
-           <property name="text">
-            <string>Show webcam overlay while recording</string>
-           </property>
-           <property name="icon">
-            <iconset>
-             <normalon>:/res/icons/camera1.png</normalon>
-            </iconset>
-           </property>
-           <property name="iconSize">
-            <size>
-             <width>20</width>
-             <height>20</height>
-            </size>
-           </property>
-          </widget>
-         </item>
-         <item row="0" column="2">
-          <widget class="QCheckBox" name="show_live_preview_checkBox">
-           <property name="text">
-            <string>Show live preview</string>
-           </property>
-           <property name="icon">
-            <iconset>
-             <normalon>:/res/icons/preview.png</normalon>
-            </iconset>
-           </property>
-           <property name="iconSize">
-            <size>
-             <width>20</width>
-             <height>20</height>
-            </size>
-           </property>
-          </widget>
-         </item>
-         <item row="3" column="1">
+         <item row="5" column="2">
           <widget class="QPushButton" name="start_record_pushButton">
            <property name="text">
             <string>Start Recording</string>
@@ -602,34 +530,128 @@ QCheckBox::indicator:hover {
            </property>
           </widget>
          </item>
-         <item row="1" column="2">
-          <widget class="QComboBox" name="pip_position_comboBox">
-           <item>
-            <property name="text">
-             <string>Top Right</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>Top Left</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>Bottom Right</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>Bottom Left</string>
-            </property>
-           </item>
+         <item row="5" column="1">
+          <widget class="QPushButton" name="capture_photo_pushButton">
+           <property name="text">
+            <string>Capture Photo</string>
+           </property>
+           <property name="icon">
+            <iconset>
+             <normalon>:/res/icons/camera.png</normalon>
+            </iconset>
+           </property>
+           <property name="iconSize">
+            <size>
+             <width>20</width>
+             <height>20</height>
+            </size>
+           </property>
           </widget>
          </item>
-         <item row="2" column="2">
-          <widget class="QComboBox" name="pip_shape_comboBox"/>
+         <item row="0" column="1">
+          <widget class="QCheckBox" name="record_audio_checkBox">
+           <property name="text">
+            <string>Record Audio</string>
+           </property>
+           <property name="icon">
+            <iconset>
+             <normalon>:/res/icons/mic.png</normalon>
+            </iconset>
+           </property>
+           <property name="iconSize">
+            <size>
+             <width>20</width>
+             <height>20</height>
+            </size>
+           </property>
+          </widget>
          </item>
-         <item row="2" column="1">
+         <item row="4" column="1">
+          <layout class="QVBoxLayout" name="verticalLayout_3">
+           <item>
+            <widget class="QLabel" name="label_14">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+             <property name="text">
+              <string>Preview size</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QSlider" name="pip_size_slider">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+             <property name="orientation">
+              <enum>Qt::Orientation::Horizontal</enum>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </item>
+         <item row="4" column="2">
+          <layout class="QVBoxLayout" name="verticalLayout_2">
+           <item>
+            <widget class="QLabel" name="label_15">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+             <property name="text">
+              <string>Preview align</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QComboBox" name="pip_position_comboBox">
+             <item>
+              <property name="text">
+               <string>Top Right</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>Top Left</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>Bottom Right</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>Bottom Left</string>
+              </property>
+             </item>
+            </widget>
+           </item>
+          </layout>
+         </item>
+         <item row="4" column="3">
+          <layout class="QVBoxLayout" name="verticalLayout_4">
+           <item>
+            <widget class="QLabel" name="label_16">
+             <property name="text">
+              <string>Preview shape</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QComboBox" name="pip_shape_comboBox"/>
+           </item>
+          </layout>
+         </item>
+         <item row="1" column="3">
           <widget class="QCheckBox" name="pip_floating_checkBox">
            <property name="text">
             <string>Floating Screen</string>
@@ -637,6 +659,42 @@ QCheckBox::indicator:hover {
            <property name="icon">
             <iconset>
              <normalon>:/res/icons/floating_window.png</normalon>
+            </iconset>
+           </property>
+           <property name="iconSize">
+            <size>
+             <width>20</width>
+             <height>20</height>
+            </size>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="2">
+          <widget class="QCheckBox" name="pip_show_checkBox">
+           <property name="text">
+            <string>Show webcam overlay while recording</string>
+           </property>
+           <property name="icon">
+            <iconset>
+             <normalon>:/res/icons/camera1.png</normalon>
+            </iconset>
+           </property>
+           <property name="iconSize">
+            <size>
+             <width>20</width>
+             <height>20</height>
+            </size>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1">
+          <widget class="QCheckBox" name="show_live_preview_checkBox">
+           <property name="text">
+            <string>Show live preview</string>
+           </property>
+           <property name="icon">
+            <iconset>
+             <normalon>:/res/icons/preview.png</normalon>
             </iconset>
            </property>
            <property name="iconSize">
