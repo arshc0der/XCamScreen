@@ -16,19 +16,20 @@
 #include <QStyle>
 #include <QApplication>
 #include <QCloseEvent>
-#include <QComboBox>
-#include <QCheckBox>
-#include <QPushButton>
-#include <QLabel>
-#include <QVideoWidget>
+#include <QGraphicsOpacityEffect>
+#include <QPropertyAnimation>
+#include <QTimer>
 
+// -------------------------------------------------------------
+// Constructor / Destructor
+// -------------------------------------------------------------
 CameraMainWindow::CameraMainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::CameraMainWindow)
 {
     ui->setupUi(this);
 
-    // --------- UI setup from .ui widgets ---------
+    // ---------- UI SETUP ----------
 
     // Mode selector
     ui->mode_comboBox->clear();
@@ -36,11 +37,9 @@ CameraMainWindow::CameraMainWindow(QWidget *parent)
     ui->mode_comboBox->addItem("Screen", 1);
 
     // Video widget
-    ui->video_widget->setMinimumSize(760, 340);
-    ui->video_widget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
     ui->video_widget->setAspectRatioMode(Qt::KeepAspectRatio);
 
-    // Resolution combo
+    // Resolution
     ui->resolution_comboBox->clear();
     ui->resolution_comboBox->addItem("640×480", QSize(640, 480));
     ui->resolution_comboBox->addItem("1280×720 (HD)", QSize(1280, 720));
@@ -48,85 +47,75 @@ CameraMainWindow::CameraMainWindow(QWidget *parent)
     ui->resolution_comboBox->addItem("2560×1440 (QHD)", QSize(2560, 1440));
     ui->resolution_comboBox->addItem("3840×2160 (4K)", QSize(3840, 2160));
 
-    // Bitrate combo
+    // Bitrate
     ui->bitrate_comboBox->clear();
-    ui->bitrate_comboBox->addItem("4 Mbps",  4000000);
-    ui->bitrate_comboBox->addItem("6 Mbps",  6000000);
-    ui->bitrate_comboBox->addItem("8 Mbps",  8000000);
-    ui->bitrate_comboBox->addItem("10 Mbps", 10000000);
-    ui->bitrate_comboBox->addItem("15 Mbps", 15000000);
-    ui->bitrate_comboBox->addItem("20 Mbps (High)", 20000000);
+    ui->bitrate_comboBox->addItem("4 Mbps",  4'000'000);
+    ui->bitrate_comboBox->addItem("6 Mbps",  6'000'000);
+    ui->bitrate_comboBox->addItem("8 Mbps",  8'000'000);
+    ui->bitrate_comboBox->addItem("10 Mbps", 10'000'000);
+    ui->bitrate_comboBox->addItem("15 Mbps", 15'000'000);
+    ui->bitrate_comboBox->addItem("20 Mbps (High)", 20'000'000);
 
-    // FPS combo
+    // FPS
     ui->fps_comboBox->clear();
     ui->fps_comboBox->addItem("24 fps (Cinema)", 24);
     ui->fps_comboBox->addItem("30 fps", 30);
     ui->fps_comboBox->addItem("60 fps (Smooth)", 60);
 
-    // Checkboxes defaults
+    // Defaults
+    ui->resolution_comboBox->setCurrentIndex(1);    // 1280x720
+    ui->bitrate_comboBox->setCurrentIndex(2);       // 8 Mbps
+    ui->fps_comboBox->setCurrentIndex(1);           // 30 fps
     ui->record_audio_checkBox->setChecked(true);
     ui->hardware_acceleration_checkBox->setChecked(true);
     ui->show_live_preview_checkBox->setChecked(true);
 
-    // Timer label
-    ui->record_timer_label->setText("00:00");
-    ui->record_timer_label->setStyleSheet("font-size: 18px; font-weight: bold; color: red;");
     ui->record_timer_label->hide();
 
-    // --------- Media setup ---------
+    // ---------- MEDIA SETUP ----------
 
     mediaRecorder = new QMediaRecorder(this);
     captureSession.setRecorder(mediaRecorder);
 
-    // Timer
     recordTimer = new QTimer(this);
     recordTimer->setInterval(1000);
     connect(recordTimer, &QTimer::timeout, this, &CameraMainWindow::updateRecordTime);
 
-    // --------- Connections ---------
+    // ---------- CONNECTIONS ----------
 
-    connect(ui->mode_comboBox,
-            QOverload<int>::of(&QComboBox::currentIndexChanged),
+    connect(ui->mode_comboBox,   QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, &CameraMainWindow::onModeChanged);
 
-    connect(ui->camera_comboBox,
-            QOverload<int>::of(&QComboBox::currentIndexChanged),
+    connect(ui->camera_comboBox, QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, &CameraMainWindow::onCameraSelectionChanged);
 
-    connect(ui->mic_comboBox,
-            QOverload<int>::of(&QComboBox::currentIndexChanged),
+    connect(ui->mic_comboBox,    QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, &CameraMainWindow::onMicSelectionChanged);
 
-    connect(ui->screen_comboBox,
-            QOverload<int>::of(&QComboBox::currentIndexChanged),
+    connect(ui->screen_comboBox, QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, &CameraMainWindow::onScreenSelectionChanged);
 
-    connect(ui->capture_photo_pushButton,
-            &QPushButton::clicked,
+    connect(ui->capture_photo_pushButton, &QPushButton::clicked,
             this, &CameraMainWindow::capturePhoto);
 
-    connect(ui->start_record_pushButton,
-            &QPushButton::clicked,
+    connect(ui->start_record_pushButton, &QPushButton::clicked,
             this, &CameraMainWindow::startRecording);
 
-    connect(ui->stop_record_pushButton,
-            &QPushButton::clicked,
+    connect(ui->stop_record_pushButton, &QPushButton::clicked,
             this, &CameraMainWindow::stopRecording);
 
-    connect(ui->record_audio_checkBox,
-            &QCheckBox::toggled,
-            this, [this](bool) { setupAudioFromSelection(); });
+    connect(ui->record_audio_checkBox, &QCheckBox::toggled,
+            this, [this](bool){ setupAudioFromSelection(); });
 
-    // Defaults
-    ui->resolution_comboBox->setCurrentIndex(1); // 1280x720
-    ui->bitrate_comboBox->setCurrentIndex(2);    // 8 Mbps
-    ui->fps_comboBox->setCurrentIndex(1);        // 30 fps
-
+    // Tray + devices + initial mode
     createTrayIcon();
     refreshDevices();
 
-    // Start in camera mode
-    onModeChanged(0);
+    // After devices are loaded, switch to camera mode
+    QTimer::singleShot(80, this, [this]{
+        ui->mode_comboBox->setCurrentIndex(0);
+        onModeChanged(0);
+    });
 
     setWindowTitle("Pro Capture (Camera / Screen Recorder)");
     resize(1100, 700);
@@ -134,41 +123,18 @@ CameraMainWindow::CameraMainWindow(QWidget *parent)
 
 CameraMainWindow::~CameraMainWindow()
 {
-    if (recordTimer)
-        recordTimer->stop();
-
-    if (mediaRecorder)
-        mediaRecorder->stop();
-
-    if (camera)
-        camera->stop();
-
-    if (screenCapture)
-        screenCapture->stop();
-
     delete ui;
 }
 
-void CameraMainWindow::closeEvent(QCloseEvent *event)
-{
-    // Minimize to tray instead of exiting, useful while recording
-    if (trayIcon && trayIcon->isVisible()) {
-        hide();
-        event->ignore();
-    } else {
-        event->accept();
-    }
-}
-
-// ---------------------- Tray Icon ----------------------
-
+// -------------------------------------------------------------
+// Tray Icon
+// -------------------------------------------------------------
 void CameraMainWindow::createTrayIcon()
 {
     trayIcon = new QSystemTrayIcon(this);
     trayIcon->setIcon(style()->standardIcon(QStyle::SP_ComputerIcon));
-    trayIcon->setToolTip("Pro Capture");
 
-    trayMenu  = new QMenu(this);
+    trayMenu = new QMenu(this);
     actionShow  = new QAction("Show Window", this);
     actionStart = new QAction("Start Recording", this);
     actionStop  = new QAction("Stop Recording", this);
@@ -187,125 +153,123 @@ void CameraMainWindow::createTrayIcon()
     connect(trayIcon, &QSystemTrayIcon::activated,
             this, &CameraMainWindow::trayIconActivated);
 
-    connect(actionShow, &QAction::triggered, this, [this]() {
+    connect(actionShow, &QAction::triggered, this, [this]{
         showNormal();
         activateWindow();
     });
-
-    connect(actionStart, &QAction::triggered,
-            this, &CameraMainWindow::startRecording);
-
-    connect(actionStop, &QAction::triggered,
-            this, &CameraMainWindow::stopRecording);
-
-    connect(actionQuit, &QAction::triggered,
-            qApp, &QApplication::quit);
+    connect(actionStart, &QAction::triggered, this, &CameraMainWindow::startRecording);
+    connect(actionStop,  &QAction::triggered, this, &CameraMainWindow::stopRecording);
+    connect(actionQuit,  &QAction::triggered, qApp, &QApplication::quit);
 }
 
 void CameraMainWindow::trayIconActivated(QSystemTrayIcon::ActivationReason reason)
 {
     if (reason == QSystemTrayIcon::Trigger) {
-        if (isHidden()) {
-            showNormal();
-            activateWindow();
-        } else {
-            hide();
-        }
+        if (isHidden()) showNormal();
+        else hide();
     }
 }
 
-// ---------------------- Devices ----------------------
+// -------------------------------------------------------------
+// Close Event – ask user, protect recording
+// -------------------------------------------------------------
+void CameraMainWindow::closeEvent(QCloseEvent *event)
+{
+    if (isRecording) {
+        auto r = QMessageBox::question(
+            this, "Recording in progress",
+            "Recording is still running.\nStop recording and exit?",
+            QMessageBox::Yes | QMessageBox::No
+            );
+        if (r == QMessageBox::No) {
+            event->ignore();
+            return;
+        }
+        stopRecording();
+    }
 
+    auto r = QMessageBox::question(
+        this, "Exit",
+        "Do you want to exit the application?",
+        QMessageBox::Yes | QMessageBox::No
+        );
+    (r == QMessageBox::Yes) ? event->accept() : event->ignore();
+}
+
+// -------------------------------------------------------------
+// Device refresh
+// -------------------------------------------------------------
 void CameraMainWindow::refreshDevices()
 {
-    // Cameras
     cameraDevices = QMediaDevices::videoInputs();
+    audioDevices  = QMediaDevices::audioInputs();
+    screenList    = QGuiApplication::screens();
+
+    // Cameras
     ui->camera_comboBox->clear();
-    for (int i = 0; i < cameraDevices.size(); ++i) {
-        ui->camera_comboBox->addItem(cameraDevices.at(i).description());
-    }
+    for (const auto &dev : cameraDevices)
+        ui->camera_comboBox->addItem(dev.description());
+    if (cameraDevices.isEmpty())
+        ui->camera_comboBox->addItem("No camera found");
 
     // Microphones
-    audioDevices = QMediaDevices::audioInputs();
     ui->mic_comboBox->clear();
-    for (int i = 0; i < audioDevices.size(); ++i) {
-        ui->mic_comboBox->addItem(audioDevices.at(i).description());
-    }
+    for (const auto &dev : audioDevices)
+        ui->mic_comboBox->addItem(dev.description());
+    if (audioDevices.isEmpty())
+        ui->mic_comboBox->addItem("No microphone found");
 
     // Screens
-    screenList = QGuiApplication::screens();
     ui->screen_comboBox->clear();
     for (int i = 0; i < screenList.size(); ++i) {
         QScreen *s = screenList.at(i);
-        QString label = QString("Screen %1 (%2x%3)")
-                            .arg(i + 1)
-                            .arg(s->size().width())
-                            .arg(s->size().height());
-        ui->screen_comboBox->addItem(label);
+        ui->screen_comboBox->addItem(
+            QString("Screen %1 (%2x%3)")
+                .arg(i + 1)
+                .arg(s->size().width())
+                .arg(s->size().height())
+            );
     }
-
-    if (ui->camera_comboBox->count() == 0)
-        ui->camera_comboBox->addItem("No camera found");
-    if (ui->mic_comboBox->count() == 0)
-        ui->mic_comboBox->addItem("No microphone found");
-    if (ui->screen_comboBox->count() == 0)
+    if (screenList.isEmpty())
         ui->screen_comboBox->addItem("No screen found");
 }
 
-// ---------------------- Mode & Selections ----------------------
-
+// -------------------------------------------------------------
+// Mode & selection handlers
+// -------------------------------------------------------------
 void CameraMainWindow::onModeChanged(int idx)
 {
-    if (isRecording) {
-        QMessageBox::information(this, "Recording in progress",
-                                 "Stop recording before changing mode.");
-        // revert combo selection to previous mode
-        int currentMode = captureSession.camera() ? 0 : 1;
-        ui->mode_comboBox->blockSignals(true);
-        ui->mode_comboBox->setCurrentIndex(currentMode);
-        ui->mode_comboBox->blockSignals(false);
-        return;
-    }
+    if (isRecording)
+        return; // don’t change mode while recording
 
-    int mode = ui->mode_comboBox->itemData(idx).toInt();
-    if (mode == 0) {
+    int mode = ui->mode_comboBox->itemData(idx).toInt(); // 0 = camera, 1 = screen
+    if (mode == 0)
         setupCameraMode();
-    } else {
+    else
         setupScreenMode();
-    }
 }
 
-void CameraMainWindow::onCameraSelectionChanged(int /*index*/)
+void CameraMainWindow::onCameraSelectionChanged(int)
 {
-    if (isRecording)
-        return; // do not change while recording
-
-    int mode = ui->mode_comboBox->currentData().toInt();
-    if (mode == 0) { // camera mode
+    if (!isRecording && ui->mode_comboBox->currentData().toInt() == 0)
         setupCameraMode();
-    }
 }
 
-void CameraMainWindow::onMicSelectionChanged(int /*index*/)
+void CameraMainWindow::onMicSelectionChanged(int)
 {
-    if (isRecording)
-        return;
-    setupAudioFromSelection();
+    if (!isRecording)
+        setupAudioFromSelection();
 }
 
-void CameraMainWindow::onScreenSelectionChanged(int /*index*/)
+void CameraMainWindow::onScreenSelectionChanged(int)
 {
-    if (isRecording)
-        return;
-
-    int mode = ui->mode_comboBox->currentData().toInt();
-    if (mode == 1) { // screen mode
+    if (!isRecording && ui->mode_comboBox->currentData().toInt() == 1)
         setupScreenMode();
-    }
 }
 
-// ---------------------- Audio / Video Setup ----------------------
-
+// -------------------------------------------------------------
+// Audio – Qt 6.10 safe (no special APIs)
+// -------------------------------------------------------------
 void CameraMainWindow::setupAudioFromSelection()
 {
     if (audioInput) {
@@ -323,15 +287,17 @@ void CameraMainWindow::setupAudioFromSelection()
 
     QAudioDevice dev = audioDevices.at(idx);
     audioInput = new QAudioInput(dev, this);
+    audioInput->setVolume(0.55);     // small reduction to avoid clipping
 
-    // slightly lower gain to reduce noise / clipping
-    audioInput->setVolume(0.6);
     captureSession.setAudioInput(audioInput);
 }
 
+// -------------------------------------------------------------
+// Camera / Screen setup
+// -------------------------------------------------------------
 void CameraMainWindow::setupCameraMode()
 {
-    // Remove previous things
+    // remove screen capture if any
     if (screenCapture) {
         screenCapture->stop();
         captureSession.setScreenCapture(nullptr);
@@ -350,35 +316,27 @@ void CameraMainWindow::setupCameraMode()
         imageCapture = nullptr;
     }
 
-    int camIdx = ui->camera_comboBox->currentIndex();
-    if (camIdx < 0 || camIdx >= cameraDevices.size()) {
-        QMessageBox::warning(this, "Error", "No camera devices available");
+    int idx = ui->camera_comboBox->currentIndex();
+    if (idx < 0 || idx >= cameraDevices.size()) {
         ui->capture_photo_pushButton->setEnabled(false);
         return;
     }
 
-    camera = new QCamera(cameraDevices.at(camIdx), this);
+    camera = new QCamera(cameraDevices.at(idx), this);
     imageCapture = new QImageCapture(this);
 
-    // Bind first → start later
     captureSession.setCamera(camera);
     captureSession.setImageCapture(imageCapture);
-    captureSession.setScreenCapture(nullptr);
-
-    // full working preview
     captureSession.setVideoOutput(ui->video_widget);
-    ui->video_widget->show();
 
     setupAudioFromSelection();
 
-    camera->start();      // MUST be after binding
-    ui->video_widget->update();
+    camera->start();
     ui->capture_photo_pushButton->setEnabled(true);
 }
 
 void CameraMainWindow::setupScreenMode()
 {
-    // Clean up camera resources
     if (camera) {
         camera->stop();
         captureSession.setCamera(nullptr);
@@ -390,7 +348,6 @@ void CameraMainWindow::setupScreenMode()
         delete imageCapture;
         imageCapture = nullptr;
     }
-
     if (screenCapture) {
         screenCapture->stop();
         captureSession.setScreenCapture(nullptr);
@@ -398,117 +355,99 @@ void CameraMainWindow::setupScreenMode()
         screenCapture = nullptr;
     }
 
-    int screenIdx = ui->screen_comboBox->currentIndex();
-    if (screenIdx < 0 || screenIdx >= screenList.size()) {
-        QMessageBox::warning(this, "Error", "No screens available to capture");
+    int idx = ui->screen_comboBox->currentIndex();
+    if (idx < 0 || idx >= screenList.size()) {
         ui->capture_photo_pushButton->setEnabled(false);
         return;
     }
 
     screenCapture = new QScreenCapture(this);
-    screenCapture->setScreen(screenList.at(screenIdx));
+    screenCapture->setScreen(screenList.at(idx));
 
     captureSession.setScreenCapture(screenCapture);
     captureSession.setVideoOutput(ui->video_widget);
-    captureSession.setCamera(nullptr);
-    captureSession.setImageCapture(nullptr);
 
     setupAudioFromSelection();
 
     screenCapture->start();
-    ui->capture_photo_pushButton->setEnabled(false); // cannot capture still photo from screen
+    ui->capture_photo_pushButton->setEnabled(false); // can't take still photo from screen
 }
 
-// ---------------------- File Helpers ----------------------
-
-QString CameraMainWindow::buildOutputFileName(const QString &prefix, const QString &ext)
-{
-    QString baseDir = QStandardPaths::writableLocation(QStandardPaths::MoviesLocation);
-    if (baseDir.isEmpty())
-        baseDir = QDir::homePath();
-
-    QDir dir(baseDir);
-    if (!dir.exists("Captures"))
-        dir.mkpath("Captures");
-
-    QString filePath = dir.filePath(
-        QString("%1_%2.%3")
-            .arg(prefix,
-                 QDateTime::currentDateTime().toString("yyyyMMdd_hhmmss"),
-                 ext));
-    return filePath;
-}
-
-// ---------------------- Photo Capture ----------------------
-
+// -------------------------------------------------------------
+// Photo capture (with flash animation)
+// -------------------------------------------------------------
 void CameraMainWindow::capturePhoto()
 {
     if (!imageCapture)
         return;
 
-    QString file = QStandardPaths::writableLocation(QStandardPaths::PicturesLocation);
-    if (file.isEmpty())
-        file = QDir::homePath();
+    QString base = QStandardPaths::writableLocation(QStandardPaths::PicturesLocation);
+    if (base.isEmpty())
+        base = QDir::homePath();
 
-    QDir dir(file);
+    QDir dir(base);
     if (!dir.exists("Photos"))
         dir.mkpath("Photos");
 
-    file = dir.filePath("photo_" +
-                        QDateTime::currentDateTime().toString("yyyyMMdd_hhmmss") +
-                        ".jpg");
+    QString file = dir.filePath("photo_" +
+                                QDateTime::currentDateTime().toString("yyyyMMdd_hhmmss") +
+                                ".jpg");
 
     imageCapture->captureToFile(file);
-    QMessageBox::information(this, "Photo Saved", "Saved to:\n" + file);
+
+    // flash effect
+    auto *fx = new QGraphicsOpacityEffect(ui->video_widget);
+    ui->video_widget->setGraphicsEffect(fx);
+    auto *anim = new QPropertyAnimation(fx, "opacity");
+    anim->setDuration(400);
+    anim->setStartValue(1.0);
+    anim->setKeyValueAt(0.3, 0.0);
+    anim->setEndValue(1.0);
+    anim->start(QPropertyAnimation::DeleteWhenStopped);
+
+    QMessageBox::information(this, "📸 Photo Captured", "Saved to:\n" + file);
 }
 
-// ---------------------- Recording ----------------------
-
+// -------------------------------------------------------------
+// Recording
+// -------------------------------------------------------------
 void CameraMainWindow::startRecording()
 {
     if (!mediaRecorder || isRecording)
         return;
 
-    int mode = ui->mode_comboBox->currentData().toInt();
-
-    // Configure media format and quality
     QSize res = ui->resolution_comboBox->currentData().toSize();
     int bitrate = ui->bitrate_comboBox->currentData().toInt();
     int fps     = ui->fps_comboBox->currentData().toInt();
 
-    QMediaFormat format;
-    format.setFileFormat(QMediaFormat::MPEG4);
-    format.setVideoCodec(QMediaFormat::VideoCodec::H264);
-    if (ui->record_audio_checkBox->isChecked()) {
-        format.setAudioCodec(QMediaFormat::AudioCodec::AAC);
-    }
+    QMediaFormat fmt;
+    fmt.setFileFormat(QMediaFormat::MPEG4);
+    fmt.setVideoCodec(QMediaFormat::VideoCodec::H264);
+    if (ui->record_audio_checkBox->isChecked())
+        fmt.setAudioCodec(QMediaFormat::AudioCodec::AAC);
 
-    mediaRecorder->setMediaFormat(format);
-    mediaRecorder->setVideoResolution(res.width(), res.height());
+    mediaRecorder->setMediaFormat(fmt);
+    mediaRecorder->setVideoResolution(res);
     mediaRecorder->setVideoBitRate(bitrate);
     mediaRecorder->setVideoFrameRate(fps);
 
-    if (ui->record_audio_checkBox->isChecked()) {
-        mediaRecorder->setAudioBitRate(96000); // 96 kbps, good quality but not heavy
-    }
+    QString base = QStandardPaths::writableLocation(QStandardPaths::MoviesLocation);
+    if (base.isEmpty())
+        base = QDir::homePath();
 
-    // Encoding mode tuned for old PCs
-    if (ui->hardware_acceleration_checkBox->isChecked()) {
-        mediaRecorder->setEncodingMode(QMediaRecorder::ConstantBitRateEncoding);
-        mediaRecorder->setQuality(QMediaRecorder::HighQuality);
-    } else {
-        mediaRecorder->setEncodingMode(QMediaRecorder::ConstantQualityEncoding);
-        mediaRecorder->setQuality(QMediaRecorder::NormalQuality);
-    }
+    QDir dir(base);
+    if (!dir.exists("Captures"))
+        dir.mkpath("Captures");
 
-    QString prefix = (mode == 0) ? "camera" : "screen";
-    QString outFile = buildOutputFileName(prefix, "mp4");
-    mediaRecorder->setOutputLocation(QUrl::fromLocalFile(outFile));
+    QString prefix = captureSession.camera() ? "camera" : "screen";
+    QString file = dir.filePath(prefix + "_" +
+                                QDateTime::currentDateTime().toString("yyyyMMdd_hhmmss") +
+                                ".mp4");
 
-    // Optional performance tweak: disable preview while recording
-    if (!ui->show_live_preview_checkBox->isChecked()) {
+    mediaRecorder->setOutputLocation(QUrl::fromLocalFile(file));
+
+    if (!ui->show_live_preview_checkBox->isChecked())
         captureSession.setVideoOutput(nullptr);
-    }
 
     mediaRecorder->record();
 
@@ -516,11 +455,6 @@ void CameraMainWindow::startRecording()
     ui->record_timer_label->setText("00:00");
     ui->record_timer_label->show();
     recordTimer->start();
-
-    if (trayIcon) {
-        trayIcon->setToolTip("Recording 00:00");
-    }
-
     setUiRecordingState(true);
     isRecording = true;
 }
@@ -531,48 +465,34 @@ void CameraMainWindow::stopRecording()
         return;
 
     mediaRecorder->stop();
-
     recordTimer->stop();
     ui->record_timer_label->hide();
 
-    // Reattach preview if it was disabled during recording
-    if (!ui->show_live_preview_checkBox->isChecked()) {
+    if (!ui->show_live_preview_checkBox->isChecked())
         captureSession.setVideoOutput(ui->video_widget);
-    }
 
     setUiRecordingState(false);
     isRecording = false;
 
-    if (trayIcon) {
-        trayIcon->setToolTip("Pro Capture");
-    }
-
-    QString file = mediaRecorder->actualLocation().toLocalFile();
-    if (!file.isEmpty()) {
-        QMessageBox::information(this, "Recording saved",
-                                 "Saved to:\n" + file);
-    }
+    QMessageBox::information(this, "🎬 Recording Saved",
+                             "Saved to:\n" + mediaRecorder->actualLocation().toLocalFile());
 }
 
 void CameraMainWindow::updateRecordTime()
 {
     ++elapsedSeconds;
-
     int mins = elapsedSeconds / 60;
     int secs = elapsedSeconds % 60;
 
-    QString timeStr =
-        QString("%1:%2")
-            .arg(mins, 2, 10, QLatin1Char('0'))
-            .arg(secs, 2, 10, QLatin1Char('0'));
-
-    ui->record_timer_label->setText(timeStr);
-
-    if (trayIcon) {
-        trayIcon->setToolTip("Recording " + timeStr);
-    }
+    ui->record_timer_label->setText(
+        QString("%1:%2").arg(mins, 2, 10, QChar('0'))
+            .arg(secs, 2, 10, QChar('0'))
+        );
 }
 
+// -------------------------------------------------------------
+// UI state when recording
+// -------------------------------------------------------------
 void CameraMainWindow::setUiRecordingState(bool recording)
 {
     ui->start_record_pushButton->setEnabled(!recording);
@@ -590,11 +510,7 @@ void CameraMainWindow::setUiRecordingState(bool recording)
     ui->mic_comboBox->setEnabled(!recording);
     ui->screen_comboBox->setEnabled(!recording);
 
-    if (recording) {
-        ui->start_record_pushButton->setText("⏺ Recording...");
-    } else {
-        ui->start_record_pushButton->setText("⏺ Start Recording");
-    }
+    ui->start_record_pushButton->setText(recording ? "⏺ Recording..." : "⏺ Start Recording");
 
     if (actionStart && actionStop) {
         actionStart->setEnabled(!recording);
