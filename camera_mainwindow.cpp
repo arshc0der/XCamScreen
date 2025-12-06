@@ -345,6 +345,23 @@ void CameraMainWindow::onModeChanged(int idx)
     case 2: setupCamScreenMode(); break;
     default: setupCameraMode();   break;
     }
+
+    // ---- PiP UI control enable/disable ----
+    bool camScreenMode = (mode == 2);              // Cam + Screen mode only
+
+    ui->pip_show_checkBox->setEnabled(camScreenMode);
+    ui->pip_position_comboBox->setEnabled(camScreenMode);
+    ui->pip_size_slider->setEnabled(camScreenMode);
+    ui->pip_shape_comboBox->setEnabled(camScreenMode);
+    ui->pip_floating_checkBox->setEnabled(camScreenMode);
+
+    // If NOT in Cam+Screen mode, also turn off PiP overlay
+    if (!camScreenMode) {
+        ui->pip_show_checkBox->setChecked(false);
+        if (pipFloatWindow) pipFloatWindow->hide();
+        ui->pip_overlay_widget->hide();
+    }
+
 }
 
 void CameraMainWindow::onCameraSelectionChanged(int)
