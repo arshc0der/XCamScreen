@@ -24,7 +24,7 @@
 
 ---
 
-## 📥 Download Stable Version (Comming Soon)
+## 📥 Download Stable Version
 
 > The safest and most verified download is provided through the **Microsoft Store**.
 
