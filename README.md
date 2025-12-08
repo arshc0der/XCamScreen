@@ -81,7 +81,7 @@ Designed for **teachers, gamers, content creators, professionals, and students**
 | --------------------- | ------------------ |
 | Home / Preview Window | ![](preview/1.png) |
 | Camera Mode           | ![](preview/cam.png) |
-| Screen Mode           | ![](preview/scr.png) |
+| Screen Mode           | ![](preview/src.png) |
 | Picture-in-Picture    | ![](preview/pip.png) |
 
 > 📌 Add screenshots to the `/preview/` folder with correct names to render automatically.
