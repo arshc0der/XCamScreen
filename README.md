@@ -30,7 +30,7 @@
 
 <!-- Microsoft Store Badge -->
 
-<a href="https://apps.microsoft.com/detail/YOUR_APP_ID">
+<a href="https://apps.microsoft.com/detail/9pbb1xtrgvmw?referrer=appbadge&mode=direct">
   <img src="https://get.microsoft.com/images/en-us%20dark.svg" width="200"/>
 </a>
 
